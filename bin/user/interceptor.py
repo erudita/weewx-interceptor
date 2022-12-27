@@ -395,6 +395,10 @@ class Consumer(object):
         'soilMoist2': 'soil_moisture_2',
         'soilMoist3': 'soil_moisture_3',
         'soilMoist4': 'soil_moisture_4',
+        'soilMoist5': 'soil_moisture_5',
+        'soilMoist6': 'soil_moisture_6',
+        'soilMoist7': 'soil_moisture_7',
+        'soilMoist8': 'soil_moisture_8',
         'leafWet1': 'leafwetness_1',
         'leafWet2': 'leafwetness_2',
         # these are not in the wview schema
@@ -769,6 +773,10 @@ class WUClient(Consumer):
             'soilmoisture2': 'soil_moisture_2',
             'soilmoisture3': 'soil_moisture_3',
             'soilmoisture4': 'soil_moisture_4',
+            'soilmoisture5': 'soil_moisture_5',
+            'soilmoisture6': 'soil_moisture_6',
+            'soilmoisture7': 'soil_moisture_7',
+            'soilmoisture8': 'soil_moisture_8',
             'leafwetness': 'leafwetness_1',
             'solarradiation': 'solar_radiation',
             'UV': 'uv',
@@ -2365,6 +2373,13 @@ class EcowittClient(Consumer):
             'wh65batt': 'wh65_battery',
             'pm25_ch1': 'pm2_5',
             'pm25batt1': 'pm25_battery',
+# new items added for compatibility with the wh90
+            'wh90batt': 'wh90_battery',
+            'ws90cap_volt': 'ws90_cap_volt',
+            'rrain_piezo': 'rain_rate_piezo',
+            'erain_piezo': 'rain_event_piezo',
+            'piezototalrainin': 'rain_total_piezo',
+
         }
 
         IGNORED_LABELS = [
@@ -2372,11 +2387,16 @@ class EcowittClient(Consumer):
             'maxdailygust', 'eventrainin', 'hourlyrainin', 'dailyrainin',
             'weeklyrainin', 'monthlyrainin', 'yearlyrainin',
             'pm25_avg_24h_ch1', 'winddir_avg10m', 'windspdmph_avg10m',
+# new items added for compatibility with the wh90
+            'runtime', 'ws90_ver',
+            'hrain_piezo', 'drain_piezo', 'wrain_piezo', 'mrain_piezo',
         ]
 
         def __init__(self):
             self._last_rain = None
             self._rain_mapping_confirmed = False
+            self._last_piezo_rain = None
+            self._piezo_rain_mapping_confirmed = False
 
         def parse(self, s):
             pkt = dict()
@@ -2394,13 +2414,23 @@ class EcowittClient(Consumer):
                 # partial packets.
                 if not self._rain_mapping_confirmed:
                     if 'totalrainin' not in data and 'yearlyrainin' in data:
-                        self.LABEL_MAP.pop('totalrainin')
+                        if 'totalrainin' in self.LABEL_MAP:
+                            self.LABEL_MAP.pop('totalrainin')
                         self.LABEL_MAP['yearlyrainin'] = 'rain_total'
                         self._rain_mapping_confirmed = True
                         loginf("using 'yearlyrainin' for rain_total")
                     elif 'totalrainin' in data:
                         self._rain_mapping_confirmed = True
                         loginf("using 'totalrainin' for rain_total")
+
+                if not self._piezo_rain_mapping_confirmed:
+                    if 'piezototalrainin' not in data and 'yrain_piezo' in data:
+                        if 'piezototalrainin' in self.LABEL_MAP:
+                            self.LABEL_MAP.pop('piezototalrainin')
+                        self.LABEL_MAP['yrain_piezo'] = 'rain_total_piezo'
+                        self._piezo_rain_mapping_confirmed = True
+                        loginf("using 'yrain_piezo' for rain_total_piezo")
+ 
 
                 # get all of the other parameters
                 for n in data:
@@ -2419,6 +2449,12 @@ class EcowittClient(Consumer):
                     newtot = pkt['rain_total']
                     pkt['rain'] = self._delta_rain(newtot, self._last_rain)
                     self._last_rain = newtot
+                # get piezo rain if available
+                if 'rain_total_piezo' in pkt:
+                    newpiezotot = pkt['rain_total_piezo']
+                    pkt['piezo_rain'] = self._delta_rain(newpiezotot, self._last_piezo_rain)
+                    self._last_piezo_rain = newpiezotot
+
 
             except ValueError as e:
                 logerr("parse failed for %s: %s" % (s, e))
