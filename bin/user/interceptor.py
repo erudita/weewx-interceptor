@@ -2378,13 +2378,14 @@ class EcowittClient(Consumer):
             'ws90cap_volt': 'ws90_cap_volt',
             'rrain_piezo': 'rain_rate_piezo',
             'erain_piezo': 'rain_event_piezo',
+            'eventrainin': 'rain_event',
             'piezototalrainin': 'rain_total_piezo',
 
         }
 
         IGNORED_LABELS = [
             'PASSKEY', 'dateutc', 'stationtype', 'model', 'freq', 'baromrelin',
-            'maxdailygust', 'eventrainin', 'hourlyrainin', 'dailyrainin',
+            'maxdailygust', 'hourlyrainin', 'dailyrainin',
             'weeklyrainin', 'monthlyrainin', 'yearlyrainin',
             'pm25_avg_24h_ch1', 'winddir_avg10m', 'windspdmph_avg10m',
 # new items added for compatibility with the wh90
